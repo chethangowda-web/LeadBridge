@@ -107,6 +107,7 @@ For EVERY Hot Lead in the batch (indexed 0..M), generate:
 1. draft_public_reply (Draft A — Value-First Public Reply):
    - Start with a genuinely helpful, non-promotional tip or workaround for their current tool/problem (so your comment adds value even if they never switch).
    - Transition smoothly and transparently disclose affiliation (e.g., "Full disclosure: I work on [ProductName]" or "Disclosure: I'm the founder of [ProductName]").
+   - If "Replies so far" are shown, read them: do not repeat advice others already gave, never criticize another commenter, and if someone already recommended a tool, acknowledge it briefly and add something genuinely new.
    - Mention ONLY factual capabilities explicitly present in that lead's Matched Verified Capabilities. NEVER invent pricing, free tiers, uptime SLAs, or integrations not explicitly listed.
    - Do NOT include raw promotional URLs or pushy calls-to-action (prevents Reddit/HN bans).
    - Keep it crisp (3-5 sentences; if Bluesky, keep under 280 characters).
@@ -165,7 +166,14 @@ def _build_draft_batch_prompt(
             lead.complaint.source, lead.complaint.sub_source, lead.complaint.post_url
         )
         matched_str = "\n".join(f"    - {cap}" for cap in lead.matched_capabilities)
-        snippet = lead.complaint.text.replace("\n", " ").strip()[:550]
+        snippet = lead.complaint.text.replace("\n", " ").strip()[:700 if lead.complaint.thread_enriched else 550]
+        replies = (
+            "Replies so far (do not repeat their advice): "
+            + " || ".join(r.replace("\n", " ")[:200] for r in lead.complaint.thread_replies[:3])
+            + "\n"
+            if lead.complaint.thread_replies
+            else ""
+        )
         blocks.append(
             f"[HOT LEAD idx={idx}]\n"
             f"Platform: {lead.complaint.source} ({lead.complaint.sub_source}) | Author: {lead.complaint.author_handle}\n"
@@ -173,6 +181,7 @@ def _build_draft_batch_prompt(
             f"Competitor Mentioned: {lead.competitor_mentioned}\n"
             f"Pain Summary: {lead.pain_summary}\n"
             f"Original Post Excerpt: {snippet}\n"
+            f"{replies}"
             f"ALLOWED Matched Verified Capabilities (ONLY claim facts from this list):\n{matched_str}"
         )
 
@@ -253,6 +262,8 @@ def _to_dataset_record(
         opportunityReasons=scored.opportunity_reasons,
         recommendedAction=recommended_action(scored, record_type),
         capabilitySources=list(capability_sources or []) if scored.matched_capabilities else [],
+        threadReplies=list(scored.complaint.thread_replies),
+        threadEnriched=scored.complaint.thread_enriched,
     )
 
 

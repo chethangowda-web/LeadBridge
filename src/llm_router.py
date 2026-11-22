@@ -97,9 +97,14 @@ class LLMRouter:
             self.apify_token
         )
         self.apify_proxy_model = apify_proxy_model or DEFAULT_APIFY_PROXY_MODEL
-        self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
-        self.anthropic_api_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
-        self.openrouter_api_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
+        # On the platform, never use keys held in environment variables (the developer's own keys):
+        # a published Actor must not spend them for other people's runs. Only the Apify proxy and a key
+        # the user typed into the input (passed as gemini_api_key) are used there. Environment keys are
+        # for local development.
+        env_keys = not on_platform
+        self.gemini_api_key = gemini_api_key or (os.getenv("GEMINI_API_KEY") if env_keys else None)
+        self.anthropic_api_key = anthropic_api_key or (os.getenv("ANTHROPIC_API_KEY") if env_keys else None)
+        self.openrouter_api_key = openrouter_api_key or (os.getenv("OPENROUTER_API_KEY") if env_keys else None)
         self.timeout_seconds = timeout_seconds
 
     @property

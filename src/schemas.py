@@ -206,6 +206,9 @@ class RawComplaint(BaseModel):
     text: str
     matched_query: str = ""
     engagement_score: int = 0
+    # Filled by thread enrichment (src/threads.py): top replies, original poster first.
+    thread_replies: list[str] = Field(default_factory=list)
+    thread_enriched: bool = False
 
 
 class CollectorTelemetry(BaseModel):
@@ -443,6 +446,8 @@ class DatasetLeadRecord(BaseModel):
     opportunityReasons: list[str] = Field(default_factory=list)
     recommendedAction: str = ""
     capabilitySources: list[str] = Field(default_factory=list)
+    threadReplies: list[str] = Field(default_factory=list)
+    threadEnriched: bool = False
 
 
 class Stage5Result(BaseModel):

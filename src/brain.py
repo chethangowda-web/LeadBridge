@@ -34,6 +34,8 @@ DEFAULT_BATCH_SIZE = 15
 # Batches scored at the same time; small enough to stay polite to providers.
 MAX_CONCURRENT_BATCHES = 3
 MAX_ITEM_CHARS_FOR_LLM = 550
+# Full thread text (when thread context was read) deserves more room than a search snippet.
+MAX_ENRICHED_ITEM_CHARS = 900
 # Approximate completion tokens one evaluation needs (fields + reasons + quote).
 TOKENS_PER_EVALUATION = 230
 
@@ -51,6 +53,19 @@ def _normalize_intent(raw: str) -> str:
 
 def _squash(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[‘’“”\"'`]", "", text or "")).strip().lower()
+
+
+def _grounded_competitor(raw: str, item: RawComplaint, default: str) -> str:
+    """Keep a competitor name only if it really appears in the post or its replies.
+
+    The model sometimes names a competitor from the founder's list that the post never mentions.
+    """
+    names = [n.strip() for n in re.split(r"[;,/&]", raw or "") if n.strip()]
+    if not names:
+        return default
+    haystack = _squash(f"{item.title} {item.text} {' '.join(item.thread_replies)}")
+    kept = [n for n in names if _squash(n) and _squash(n) in haystack]
+    return ", ".join(kept) if kept else default
 
 
 def _verified_quote(quote: str, item: RawComplaint) -> str:
@@ -115,7 +130,13 @@ For EVERY post in the batch (do NOT skip any index), evaluate:
      * 14-23: Strong frustration, pricing shock, weighing build-vs-buy, or comparing vendors without asking yet.
      * 5-13: Mild or exploratory mention of the pain.
 
-5. Opportunity evidence (keep it short; output length is limited):
+5. Thread context: some posts show "Replies so far" (other people's comments; [OP] marks the author's own).
+   - If the author or the replies show the problem is already solved or a vendor was already chosen
+     ("this worked", "we went with X", "thanks, sorted"), set urgency_score to 5 or less and intent_signal to
+     none or general_frustration: that person is no longer a prospect.
+   - If replies only give generic advice and the author is still asking, keep the intent.
+
+6. Opportunity evidence (keep it short; output length is limited):
    - intent_signal: the strongest signal, one of explicit_alternative_search, asking_for_recommendation,
      active_migration, build_vs_buy, blocked_now, pricing_pain, feature_gap, general_frustration, none.
    - intent_evidence_quote: up to 25 words copied EXACTLY from the post text (no paraphrase) that show the pain or
@@ -166,13 +187,20 @@ def _build_batch_user_prompt(
 
     post_blocks: list[str] = []
     for idx, item in enumerate(batch):
-        compact_text = item.text.replace("\n", " ").strip()[:MAX_ITEM_CHARS_FOR_LLM]
+        limit = MAX_ENRICHED_ITEM_CHARS if item.thread_enriched else MAX_ITEM_CHARS_FOR_LLM
+        compact_text = item.text.replace("\n", " ").strip()[:limit]
         title_line = f"Title: {item.title[:160]}\n" if item.title else ""
+        replies_line = (
+            "Replies so far: " + " || ".join(r.replace("\n", " ")[:200] for r in item.thread_replies[:4]) + "\n"
+            if item.thread_replies
+            else ""
+        )
         post_blocks.append(
             f"[POST idx={idx}]\n"
             f"Source: {item.source} ({item.sub_source}) | Author: {item.author_handle}\n"
             f"{title_line}"
-            f"Text: {compact_text}"
+            f"Text: {compact_text}\n"
+            f"{replies_line}"
         )
 
     posts_section = "\n\n".join(post_blocks)
@@ -239,7 +267,7 @@ def _apply_grounding_and_build_scored(
             lead_tier="unresolved_market_gap" if is_market_gap else "discarded",
             is_genuine_pain=is_pain,
             can_client_resolve=False,
-            competitor_mentioned=ev.competitor_mentioned.strip() or "None",
+            competitor_mentioned=_grounded_competitor(ev.competitor_mentioned, item, "None"),
             pain_category=ev.pain_category.strip() or "off_topic",
             pain_summary=ev.pain_summary.strip(),
             matched_capabilities=[],
@@ -276,7 +304,7 @@ def _apply_grounding_and_build_scored(
         lead_tier=tier,
         is_genuine_pain=True,
         can_client_resolve=True,
-        competitor_mentioned=ev.competitor_mentioned.strip() or "Category-Level",
+        competitor_mentioned=_grounded_competitor(ev.competitor_mentioned, item, "Category-Level"),
         pain_category=ev.pain_category.strip() or "general_pain",
         pain_summary=ev.pain_summary.strip(),
         matched_capabilities=matched_caps,

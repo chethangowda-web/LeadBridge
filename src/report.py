@@ -234,6 +234,23 @@ def _quote_block(lead: DatasetLeadRecord) -> str:
     )
 
 
+def _conversation_block(replies: list[str]) -> str:
+    """What others already said in the thread; the original poster's replies get an OP badge."""
+    if not replies:
+        return ""
+    items = []
+    for reply in replies[:4]:
+        is_op = reply.startswith("[OP] ")
+        text = reply[5:] if is_op else reply
+        badge = '<span class="op">OP</span>' if is_op else ""
+        items.append(f'<li class="reply">{badge}<span>{_esc(text)}</span></li>')
+    return (
+        '<p class="label spaced">Conversation so far</p>'
+        f'<ul class="convo">{"".join(items)}</ul>'
+        '<p class="convo-note muted">Read these before you reply. Draft A is written not to repeat them.</p>'
+    )
+
+
 def _drafts_block(lead: DatasetLeadRecord, idx: int) -> str:
     def panel(key: str, label: str, text: str, hint: str) -> str:
         words = len((text or "").split())
@@ -284,6 +301,7 @@ def _build_hot_lead_cards_html(hot_leads: list[DatasetLeadRecord]) -> str:
         pain = (lead.painCategory or "").replace("_", " ").title()
         why = "".join(f"<li>{ICON_CHECK}<span>{_esc(r)}</span></li>" for r in lead.opportunityReasons)
         why_block = f'<p class="label spaced">Why this is an opportunity</p><ul class="why">{why}</ul>' if why else ""
+        convo = _conversation_block(lead.threadReplies)
         caps = "".join(f"<span>{_esc(c)}</span>" for c in lead.matchedCapabilities)
         source_links = ", ".join(
             f'<a href="{_safe_href(s)}" target="_blank" rel="noopener noreferrer">{_esc(s)}</a>'
@@ -314,6 +332,7 @@ def _build_hot_lead_cards_html(hot_leads: list[DatasetLeadRecord]) -> str:
                 <div>
                   {_quote_block(lead)}
                   {why_block}
+                  {convo}
                 </div>
                 <div>
                   <p class="label">Your proof</p>
@@ -719,6 +738,10 @@ background:radial-gradient(900px 440px at 88% -14%,rgba(91,61,245,.62),transpare
 .quote-src{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12.5px;color:var(--muted);align-items:center}
 .quote-src a{font-weight:700;text-decoration:none;display:inline-flex;gap:4px;align-items:center}
 .quote-src a svg{width:13px;height:13px}
+.convo{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.reply{display:flex;gap:9px;align-items:flex-start;background:#FAF8F3;border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:9px 13px;font-size:13.5px;color:#34324A}
+.op{flex:none;background:var(--ink);color:var(--signal);font-size:10.5px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 7px;margin-top:2px}
+.convo-note{font-size:12px;margin:8px 0 0}
 .why{list-style:none;margin:0;padding:0;display:grid;gap:9px}
 .why li{display:flex;gap:10px;align-items:flex-start}
 .why svg{width:19px;height:19px;flex:none;margin-top:3px;color:var(--signal-ink)}

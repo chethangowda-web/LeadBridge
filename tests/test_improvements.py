@@ -720,3 +720,189 @@ def test_competitor_label_is_short_and_readable():
     assert _comp_label("Bright Data") == "Bright Data"
     assert _comp_label("Category-Level") == "Category-wide pain"
     assert _comp_label("None") == "Category-wide pain"
+
+
+# ---------------------------------------------------------------------
+# Thread context: full Reddit thread + top replies
+# ---------------------------------------------------------------------
+
+from src.threads import enrich_threads, thread_id  # noqa: E402
+
+THREAD_URL = "https://www.reddit.com/r/scrapingtheweb/comments/1y0hk3g/web_unlockers_vs_parallax/"
+FULL_BODY = "We are comparing managed unlockers and specialist teams for large-scale scraping because we lack in-house anti-bot expertise. " * 3
+
+
+def _thread_items(comments=None, body=FULL_BODY, post_id="t3_1y0hk3g"):
+    items = [{"dataType": "post", "id": post_id, "body": body}]
+    for c in comments or []:
+        items.append({"dataType": "comment", "postId": post_id, **c})
+    return items
+
+
+def _snippet_complaint(cid="t1", url=THREAD_URL, source="google_serp"):
+    return _make_complaint(cid, "Web Unlockers vs Parallax ... Read more", url=url, source=source, title="Web Unlockers vs Parallax")
+
+
+def test_thread_id_extraction():
+    assert thread_id(THREAD_URL) == "1y0hk3g"
+    assert thread_id("https://old.reddit.com/r/x/comments/ABC123/title/") == "abc123"
+    assert thread_id("https://news.ycombinator.com/item?id=1") is None
+    assert thread_id("https://www.reddit.com/user/someone/") is None
+
+
+@pytest.mark.asyncio
+async def test_enrichment_replaces_snippet_and_ranks_replies_op_first():
+    comments = [
+        {"body": "Bright Data works fine for us, mostly.", "score": 9, "authorName": "a"},
+        {"body": "[removed]", "score": 50, "authorName": "b"},
+        {"body": "I am the mod, please read the rules before posting here.", "score": 99, "authorName": "AutoModerator"},
+        {"body": "Stickied announcement text goes here for everybody", "score": 80, "authorName": "c", "stickied": True},
+        {"body": "Thanks, we are still deciding between two options.", "score": 1, "authorName": "op", "isSubmitter": True},
+        {"body": "Try running the same URLs through each vendor first.", "score": 4, "authorName": "d"},
+        {"body": "x" * 400, "score": 2, "authorName": "e"},
+        {"body": "short", "score": 70, "authorName": "f"},
+    ]
+    item = _snippet_complaint()
+    with patch("src.threads._run_apify_actor_and_fetch_items", AsyncMock(return_value=_thread_items(comments))) as run:
+        out, stats = await enrich_threads([item], apify_token="tok")
+
+    got = out[0]
+    assert got.thread_enriched and "lack in-house anti-bot expertise" in got.text and "Read more" not in got.text
+    assert got.text.startswith("Web Unlockers vs Parallax\n")
+    assert got.thread_replies[0] == "[OP] Thanks, we are still deciding between two options."
+    assert got.thread_replies[1] == "Bright Data works fine for us, mostly."
+    assert len(got.thread_replies) == 4
+    assert not any("AutoModerator" in r or "removed" in r or "Stickied" in r or r == "short" for r in got.thread_replies)
+    assert got.thread_replies[3].endswith("...") and len(got.thread_replies[3]) <= 244
+    assert (stats.candidates, stats.enriched, stats.replies) == (1, 1, 4)
+    run_input = run.await_args.kwargs["run_input"]
+    assert run_input["startUrls"] == [{"url": THREAD_URL}] and run_input["crawlCommentsPerPost"] is True
+
+
+@pytest.mark.asyncio
+async def test_enrichment_is_best_effort_and_never_raises():
+    item = _snippet_complaint()
+    original = item.text
+    out, stats = await enrich_threads([item], apify_token=None)
+    assert out[0].text == original and not out[0].thread_enriched and "token" in stats.note
+
+    with patch("src.threads._run_apify_actor_and_fetch_items", AsyncMock(side_effect=RuntimeError("actor failed"))):
+        out, stats = await enrich_threads([item], apify_token="tok")
+    assert out[0].text == original and not out[0].thread_replies and "failed" in stats.note
+
+    hn = _make_complaint("hn", "HN thread about pricing", url="https://news.ycombinator.com/item?id=9", source="hacker_news")
+    with patch("src.threads._run_apify_actor_and_fetch_items", AsyncMock()) as run:
+        out, stats = await enrich_threads([hn], apify_token="tok")
+    run.assert_not_awaited()
+    assert stats.candidates == 0 and "No Reddit threads" in stats.note
+
+
+@pytest.mark.asyncio
+async def test_enrichment_caps_threads_and_reads_search_snippets_first():
+    reddit_items = [
+        _make_complaint(f"r{i}", "full body already here " * 5, url=f"https://www.reddit.com/r/x/comments/rr{i}/t/", source="reddit")
+        for i in range(3)
+    ]
+    snippet_items = [
+        _make_complaint(f"g{i}", "snippet ... Read more", url=f"https://www.reddit.com/r/x/comments/gg{i}/t/", source="google_serp")
+        for i in range(3)
+    ]
+    with patch("src.threads._run_apify_actor_and_fetch_items", AsyncMock(return_value=[])) as run:
+        await enrich_threads(reddit_items + snippet_items, apify_token="tok", max_threads=4)
+    urls = [u["url"] for u in run.await_args.kwargs["run_input"]["startUrls"]]
+    assert len(urls) == 4
+    assert all("/gg" in u for u in urls[:3])
+
+
+@pytest.mark.asyncio
+async def test_short_or_missing_body_keeps_original_text_but_adds_replies():
+    item = _make_complaint("t9", "A perfectly fine full post body that is long enough already, nothing truncated here.", url=THREAD_URL, source="reddit")
+    original = item.text
+    reply = {"body": "Have you tried a managed service?", "score": 3, "authorName": "z"}
+    with patch("src.threads._run_apify_actor_and_fetch_items", AsyncMock(return_value=_thread_items([reply], body="tiny"))):
+        out, _ = await enrich_threads([item], apify_token="tok")
+    assert out[0].text == original and out[0].thread_replies == ["Have you tried a managed service?"]
+
+
+def test_stage4_and_stage5_prompts_include_replies_and_solved_rule():
+    from src.brain import STAGE4_SYSTEM_PROMPT, _build_batch_user_prompt
+    from src.drafter import STAGE5_SYSTEM_PROMPT, _build_draft_batch_prompt
+
+    item = _make_complaint("p1", "Looking for a provider " * 40, age_hours=3)
+    item.thread_enriched = True
+    item.thread_replies = ["[OP] We went with vendor X, thanks all.", "Bright Data is decent."]
+    prompt = _build_batch_user_prompt(_sample_profile(), [item])
+    assert "Replies so far: [OP] We went with vendor X, thanks all. || Bright Data is decent." in prompt
+    assert len(item.text) > 550 and "Looking for a provider" in prompt
+    assert "already solved" in STAGE4_SYSTEM_PROMPT and "urgency_score to 5 or less" in STAGE4_SYSTEM_PROMPT
+
+    plain = _make_complaint("p2", "plain", age_hours=3)
+    assert "Replies so far" not in _build_batch_user_prompt(_sample_profile(), [plain])
+
+    scored = _scored()
+    scored.complaint.thread_replies = ["Bright Data is decent.", "[OP] Thanks."]
+    draft_prompt = _build_draft_batch_prompt(_sample_profile(), [scored], "founder_candid")
+    assert "Replies so far (do not repeat their advice): Bright Data is decent. || [OP] Thanks." in draft_prompt
+    assert "do not repeat advice others already gave" in STAGE5_SYSTEM_PROMPT
+
+
+def test_dataset_record_and_report_show_the_conversation_safely():
+    from src.report import _build_hot_lead_cards_html
+
+    scored = _scored(intent_evidence_quote="Looking for an alternative")
+    scored.complaint.thread_enriched = True
+    scored.complaint.thread_replies = ['[OP] Still looking <img src=x onerror="alert(1)">', "Try Bright Data."]
+    rec = _to_dataset_record(scored, "hot_lead", capability_sources=["https://x.io"])
+    assert rec.threadEnriched and rec.threadReplies[0].startswith("[OP] ")
+
+    html = _build_hot_lead_cards_html([rec])
+    assert "Conversation so far" in html and '<span class="op">OP</span>' in html and "Try Bright Data." in html
+    assert '<img src=x onerror="alert(1)">' not in html
+    assert "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;" in html
+    quiet = _to_dataset_record(_scored(), "hot_lead", capability_sources=["https://x.io"])
+    assert "Conversation so far" not in _build_hot_lead_cards_html([quiet])
+
+
+def test_competitor_name_must_appear_in_the_post_or_replies():
+    from src.brain import _grounded_competitor
+
+    post = _make_complaint("c1", "We pay Bright Data a lot and maintaining scrapers is painful.", age_hours=3)
+    post.thread_replies = ["Oxylabs worked better for us."]
+    assert _grounded_competitor("Bright Data", post, "Category-Level") == "Bright Data"
+    assert _grounded_competitor("Apify", post, "Category-Level") == "Category-Level"  # never mentioned
+    assert _grounded_competitor("Bright Data; Apify; Oxylabs", post, "Category-Level") == "Bright Data, Oxylabs"
+    assert _grounded_competitor("oxylabs", post, "None") == "oxylabs"  # case-insensitive, found in replies
+    assert _grounded_competitor("", post, "None") == "None"
+
+
+def test_platform_runs_never_use_the_developers_environment_keys(monkeypatch):
+    for name, value in (("GEMINI_API_KEY", "g-env"), ("ANTHROPIC_API_KEY", "a-env"), ("OPENROUTER_API_KEY", "o-env")):
+        monkeypatch.setenv(name, value)
+    monkeypatch.setenv("APIFY_TOKEN", "run-token")
+
+    monkeypatch.setenv("APIFY_IS_AT_HOME", "1")
+    platform = LLMRouter()
+    assert platform.use_apify_proxy is True
+    assert platform.gemini_api_key is None and platform.anthropic_api_key is None and platform.openrouter_api_key is None
+    # a key the user typed into the Actor input is still honoured
+    assert LLMRouter(gemini_api_key="user-typed-key").gemini_api_key == "user-typed-key"
+
+    monkeypatch.delenv("APIFY_IS_AT_HOME")  # local development keeps using environment keys
+    local = LLMRouter()
+    assert (local.gemini_api_key, local.anthropic_api_key, local.openrouter_api_key) == ("g-env", "a-env", "o-env")
+
+
+@pytest.mark.asyncio
+async def test_platform_proxy_failure_does_not_fall_back_to_a_developer_key(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a-env")
+    monkeypatch.setenv("APIFY_IS_AT_HOME", "1")
+    monkeypatch.setenv("APIFY_TOKEN", "run-token")
+    router = LLMRouter()
+    claude = AsyncMock()
+    with (
+        patch.object(router, "_call_openai_compat", AsyncMock(side_effect=RuntimeError("proxy down"))),
+        patch.object(router, "_call_claude", claude),
+    ):
+        with pytest.raises(Exception, match="proxy down"):
+            await router.generate_structured("s", "u", LLMProfileExtraction)
+    claude.assert_not_awaited()

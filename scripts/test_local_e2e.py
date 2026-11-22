@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import re
 import sys
 import time
@@ -42,6 +43,7 @@ from src.filters import filter_complaints
 from src.profiler import build_product_profile
 from src.radar import build_competitor_radar
 from src.report import render_executive_report_html
+from src.threads import enrich_threads
 from src.schemas import ActorInput
 
 load_dotenv()
@@ -184,6 +186,13 @@ async def run_local_e2e(
     # =========================================================================
     # STAGE 4: Batched LLM Solvability Hard-Gate & Winability Scorer
     # =========================================================================
+    stage3.clean_complaints, thread_stats = await enrich_threads(
+        stage3.clean_complaints, apify_token=os.getenv("APIFY_TOKEN")
+    )
+    print(
+        f"\n[THREAD CONTEXT] {thread_stats.enriched}/{thread_stats.candidates} threads read, "
+        f"{thread_stats.replies} replies attached {thread_stats.note}"
+    )
     t4 = time.perf_counter()
     stage4 = await score_complaints_batched(
         complaints=stage3.clean_complaints,

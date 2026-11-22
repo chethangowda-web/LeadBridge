@@ -26,6 +26,7 @@ from src.profiler import build_product_profile
 from src.pdf import html_to_pdf
 from src.radar import build_competitor_radar
 from src.revenue import compute_revenue_scenario
+from src.threads import enrich_threads
 from src.report import render_executive_report_html
 from src.schemas import ActorInput, DatasetLeadRecord
 
@@ -157,6 +158,19 @@ async def main() -> None:
         )
         await Actor.set_value("STAGE3_FILTER_REPORT", stage3.model_dump(mode="json"))
 
+        # --- STAGE 3b: read the whole Reddit thread (full text + top replies), best effort ---
+        run_state["stage"] = "stage_3b_thread_context"
+        stage3.clean_complaints, thread_stats = await enrich_threads(
+            stage3.clean_complaints, apify_token=os.getenv("APIFY_TOKEN")
+        )
+        Actor.log.info(
+            "Thread context: %d/%d threads read, %d replies attached %s",
+            thread_stats.enriched,
+            thread_stats.candidates,
+            thread_stats.replies,
+            f"({thread_stats.note})" if thread_stats.note else "",
+        )
+
         # --- STAGE 4: Batched LLM Solvability Hard-Gate & Winability Scorer ---
         run_state["stage"] = "stage_4_scoring"
         stage4 = await score_complaints_batched(
@@ -219,6 +233,7 @@ async def main() -> None:
             "lowPriority": len(stage4.low_priority),
             "rejectedNoise": len(stage4.discarded),
             "fallbackTriggered": stage2.fallback_triggered,
+            "threadsRead": thread_stats.enriched,
             "radarHeadline": radar.headline,
             "radarWeaknesses": len(radar.weaknesses),
             "radarPositioning": len(radar.positioning),
