@@ -124,14 +124,14 @@ Pay per event. You only pay for work done:
 
 | Event | Price | When it's charged |
 |---|---|---|
-| Product analyzed | $0.05 | Once per run, after your product is profiled |
-| Complaint qualified by AI | $0.005 | Per post the AI checks (after the free filter) |
-| Act-now opportunity | $0.50 | Per qualified opportunity delivered with drafts |
+| Product analyzed | $0.03 | Once per run, after your product is profiled |
+| Complaint qualified by AI | $0.003 | Per post the AI checks (after the free filter) |
+| Act-now opportunity | $0.25 | Per qualified opportunity delivered with drafts |
 | Actor start | $0.00005 | Run start (tiny) |
 
-**A typical run:** about 45 to 55 posts checked and 1 to 3 Act-now opportunities, so roughly **$0.80 to $1.80**. A run that finds no Act-now opportunity costs about $0.30.
+**A typical run:** about 45 to 55 posts checked and 1 to 3 Act-now opportunities, so roughly **$0.40 to $0.90**. A run that finds no Act-now opportunity costs about $0.18.
 
-*Apify's pricing card shows the headline price per 1,000 results (for example $500 per 1,000 Act-now opportunities). That is just $0.50 each.*
+*Apify's pricing card shows the headline price per 1,000 results (for example $250 per 1,000 Act-now opportunities). That is just $0.25 each.*
 
 You can set a maximum cost per run in Apify, and LeadBridge stops delivering opportunities when it is reached. LeadBridge also runs Apify Store scrapers (Google search, Reddit) and AI calls on your account. In our test runs, the platform usage shown on the run page was roughly $0.03 to $0.07.
 
