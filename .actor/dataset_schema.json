@@ -1,0 +1,47 @@
+{
+  "actorSpecification": 1,
+  "fields": {},
+  "views": {
+    "opportunities": {
+      "title": "Opportunities",
+      "description": "Every qualified opportunity, best first: who to contact, why, and what to do next.",
+      "transformation": {
+        "fields": ["priority", "winabilityScore", "intentLabel", "postTitle", "painSummary", "competitorMentioned", "recommendedAction", "postUrl", "source"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "priority": { "label": "Priority", "format": "text" },
+          "winabilityScore": { "label": "Score", "format": "number" },
+          "intentLabel": { "label": "Buying intent", "format": "text" },
+          "postTitle": { "label": "Post", "format": "text" },
+          "painSummary": { "label": "Customer pain", "format": "text" },
+          "competitorMentioned": { "label": "Competitor", "format": "text" },
+          "recommendedAction": { "label": "Next action", "format": "text" },
+          "postUrl": { "label": "Link", "format": "link" },
+          "source": { "label": "Source", "format": "text" }
+        }
+      }
+    },
+    "outreach": {
+      "title": "Outreach drafts",
+      "description": "Ready-to-review replies for Act-now opportunities, with the evidence behind every claim.",
+      "transformation": {
+        "fields": ["priority", "postUrl", "intentEvidenceQuote", "opportunityReasons", "draftPublicReply", "draftDirectPitch", "claimEvidenceSummary", "platformSafetyRule"]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "priority": { "label": "Priority", "format": "text" },
+          "postUrl": { "label": "Link", "format": "link" },
+          "intentEvidenceQuote": { "label": "Their words", "format": "text" },
+          "opportunityReasons": { "label": "Why it's an opportunity", "format": "array" },
+          "draftPublicReply": { "label": "Draft A: public reply", "format": "text" },
+          "draftDirectPitch": { "label": "Draft B: follow-up", "format": "text" },
+          "claimEvidenceSummary": { "label": "Claims used", "format": "text" },
+          "platformSafetyRule": { "label": "Platform rules", "format": "text" }
+        }
+      }
+    }
+  }
+}

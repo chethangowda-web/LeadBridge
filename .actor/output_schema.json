@@ -1,0 +1,43 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "LeadBridge output",
+  "description": "Qualified opportunities, the interactive report, competitor intelligence and the run summary.",
+  "properties": {
+    "report": {
+      "type": "string",
+      "title": "Interactive report (HTML)",
+      "description": "Act-now opportunities with drafts, Competitor Pain Radar and the revenue calculator.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/REPORT.html"
+    },
+    "opportunities": {
+      "type": "string",
+      "title": "Opportunities",
+      "description": "Every qualified opportunity (Act now, Monitor, Product insight) with intent, evidence and next action.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=opportunities"
+    },
+    "outreach": {
+      "type": "string",
+      "title": "Outreach drafts",
+      "description": "Ready-to-review replies for Act-now opportunities and the evidence behind every claim.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=outreach"
+    },
+    "competitorRadar": {
+      "type": "string",
+      "title": "Competitor Pain Radar (JSON)",
+      "description": "Competitor weaknesses, positioning angles and unmet needs, each linked to its evidence.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/COMPETITOR_RADAR"
+    },
+    "revenueScenario": {
+      "type": "string",
+      "title": "Revenue scenario (JSON)",
+      "description": "Illustrative scenario from your deal value and conversion assumptions. Present only when a deal value is given.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/REVENUE_SCENARIO"
+    },
+    "status": {
+      "type": "string",
+      "title": "Run summary (JSON)",
+      "description": "Counts per stage, radar headline and illustrative revenue.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/STATUS"
+    }
+  }
+}

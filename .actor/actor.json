@@ -1,0 +1,16 @@
+{
+  "actorSpecification": 1,
+  "name": "leadbridge",
+  "title": "LeadBridge: Find Customers Leaving Your Competitors",
+  "description": "Give it your product URL. It finds people publicly complaining about your competitors, keeps only those your product can actually help and who show buying intent, and hands you evidence-backed opportunities, competitor weaknesses, and ready-to-review replies.",
+  "version": "1.0",
+  "meta": {
+    "templateId": "python-start"
+  },
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  },
+  "output": "./output_schema.json"
+}

@@ -1,0 +1,154 @@
+{
+  "title": "LeadBridge Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "productUrl": {
+      "title": "Product Website URL",
+      "type": "string",
+      "description": "Your product's website address, e.g. https://your-product.com (not the product name). This is the only required field: the Actor reads your site to learn what you sell and which competitors to watch.",
+      "editor": "textfield",
+      "example": "https://your-product.com",
+      "pattern": "^(https?://)?[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(/.*)?$",
+      "prefill": "https://getdataforme.com"
+    },
+    "productName": {
+      "title": "Product Name (optional)",
+      "type": "string",
+      "description": "Leave blank to use the name from your website. Your own brand is always excluded from the results.",
+      "editor": "textfield",
+      "example": "InvoiceSpark"
+    },
+    "productDescription": {
+      "title": "Product Description (optional)",
+      "type": "string",
+      "description": "Optional extra context: what you sell, pricing, and key advantages. Needed only if your website can't be read.",
+      "editor": "textarea",
+      "example": "Flat $15/mo invoicing for freelancers and small agencies. Unlimited clients, automated overdue payment reminders, 0% markup on Stripe/Wise/UPI, 1-click FreshBooks/QuickBooks CSV import."
+    },
+    "competitors": {
+      "title": "Known Competitors (Optional)",
+      "type": "array",
+      "description": "Leave blank to auto-discover top 4-6 competitors automatically.",
+      "editor": "stringList",
+      "default": []
+    },
+    "sources": {
+      "title": "Complaint Sources",
+      "type": "array",
+      "description": "Select platforms to harvest. Default Lean mode excludes G2 for fast ~40s runs.",
+      "editor": "select",
+      "default": [
+        "google_serp",
+        "reddit",
+        "hacker_news",
+        "bluesky"
+      ],
+      "items": {
+        "type": "string",
+        "enum": [
+          "google_serp",
+          "reddit",
+          "hacker_news",
+          "bluesky",
+          "g2"
+        ]
+      }
+    },
+    "lookbackDays": {
+      "title": "Lookback Window (Days)",
+      "type": "integer",
+      "description": "Only harvest complaints published within the last N days.",
+      "default": 14,
+      "minimum": 1,
+      "maximum": 90
+    },
+    "minWinabilityScore": {
+      "title": "Minimum Hot-Lead Score (0-100)",
+      "type": "integer",
+      "description": "Complaints scoring at or above this threshold receive dual outreach drafts.",
+      "default": 70,
+      "minimum": 40,
+      "maximum": 95
+    },
+    "tone": {
+      "title": "Outreach Tone",
+      "type": "string",
+      "enum": [
+        "helpful_technical",
+        "founder_candid",
+        "executive_concise"
+      ],
+      "default": "founder_candid",
+      "editor": "select",
+      "description": "Voice for the drafted replies: peer-engineer technical, candid founder, or concise executive.",
+      "enumTitles": [
+        "Helpful technical",
+        "Founder candid",
+        "Executive concise"
+      ]
+    },
+    "dealValueUsd": {
+      "title": "Deal value per customer (USD, optional)",
+      "type": "integer",
+      "description": "What one new customer pays you per billing period. Used only for the illustrative revenue calculator in the report; leave blank to enter it there.",
+      "minimum": 1,
+      "maximum": 10000000,
+      "unit": "USD",
+      "sectionCaption": "Revenue calculator (optional)",
+      "sectionDescription": "Illustrative scenario only, based on your own assumptions. It is not a forecast."
+    },
+    "billingPeriod": {
+      "title": "Billing period",
+      "type": "string",
+      "description": "How the deal value is billed.",
+      "editor": "select",
+      "enum": [
+        "monthly",
+        "yearly",
+        "one_time"
+      ],
+      "enumTitles": [
+        "Monthly",
+        "Yearly",
+        "One-time"
+      ],
+      "default": "monthly"
+    },
+    "contractMonths": {
+      "title": "Assumed contract length (months)",
+      "type": "integer",
+      "description": "How long a converted customer stays, for monthly or yearly billing.",
+      "default": 12,
+      "minimum": 1,
+      "maximum": 120,
+      "unit": "months"
+    },
+    "assumedConversionRatePercent": {
+      "title": "Assumed conversion rate (%)",
+      "type": "integer",
+      "description": "Your guess at the share of Act-now opportunities that become customers.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100,
+      "unit": "%"
+    },
+    "modelName": {
+      "title": "AI Model",
+      "type": "string",
+      "description": "OpenRouter model id used through the Apify OpenRouter proxy. LLM usage is billed to your Apify account; no separate AI key is needed.",
+      "editor": "textfield",
+      "default": "anthropic/claude-haiku-5.5"
+    },
+    "llmApiKey": {
+      "title": "Optional BYOK Gemini API Key (fallback)",
+      "type": "string",
+      "description": "Optional: your own Google AI Studio key, used only if the Apify OpenRouter proxy fails.",
+      "editor": "textfield",
+      "isSecret": true
+    }
+  },
+  "required": [
+    "productUrl"
+  ]
+}

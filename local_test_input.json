@@ -1,0 +1,17 @@
+{
+  "productName": "GetDataForMe",
+  "productUrl": "https://getdataforme.com",
+  "productDescription": "GetDataForMe is a web scraping and data extraction service provider that helps businesses collect, structure, validate, and deliver publicly available web data at scale. The company offers custom web scraping solutions, managed data extraction projects, dedicated scraping engineers, and ready-made Apify Actors. Its services cover e-commerce product listings, competitor price monitoring, customer reviews, business directories, lead generation, job postings, real estate listings, search engine results, social media signals, news monitoring, and document extraction. Its technical capabilities include Python-based scraping with Scrapy, Playwright, httpx, and Crawlee, JavaScript-rendered page extraction, pagination handling, structured data parsing, proxy management, anti-bot resilience, scheduled scraping, deduplication, schema validation, and automated monitoring. Customers can receive data in CSV, JSON, Excel, Google Sheets, REST APIs, webhooks, cloud storage, or databases. Its commercial offerings include one-off data projects starting at $500 per site, dedicated scraping engineers starting at $2,500 per engineer per month, and pay-per-result Apify Actors. The target customers include startups, SaaS businesses, e-commerce companies, marketing teams, sales teams, data analysts, and enterprises that need reliable external data without maintaining their own scraping infrastructure. Important customer decision factors include pricing transparency, scraping accuracy, data completeness, delivery speed, website compatibility, maintenance, scalability, API reliability, customer support, and data quality. Potential customer pain points include expensive custom scraping projects, unexpected infrastructure and proxy costs, failed scraping jobs, incomplete datasets, website layout changes, slow delivery, limited self-service capabilities, integration difficulties, and dependency on external engineers. The company's value proposition is providing managed web scraping expertise and clean, structured data while reducing the engineering effort required to build and maintain scraping infrastructure.",
+  "competitors": [
+    "Apify"
+  ],
+  "sources": [
+    "google_serp",
+    "reddit",
+    "hacker_news",
+    "bluesky"
+  ],
+  "lookbackDays": 30,
+  "minWinabilityScore": 70,
+  "tone": "helpful_technical"
+}
