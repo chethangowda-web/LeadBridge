@@ -23,6 +23,7 @@ from src.collectors import harvest_complaints
 from src.drafter import draft_hot_leads
 from src.filters import filter_complaints
 from src.profiler import build_product_profile
+from src.pdf import html_to_pdf
 from src.radar import build_competitor_radar
 from src.revenue import compute_revenue_scenario
 from src.report import render_executive_report_html
@@ -202,6 +203,9 @@ async def main() -> None:
             radar=radar,
         )
         await Actor.set_value("REPORT.html", report_html, content_type="text/html; charset=utf-8")
+        report_pdf = await html_to_pdf(report_html)
+        if report_pdf:
+            await Actor.set_value("REPORT.pdf", report_pdf, content_type="application/pdf")
 
         summary = {
             "state": "completed",
@@ -224,6 +228,20 @@ async def main() -> None:
             await Actor.set_value("REVENUE_SCENARIO", scenario.model_dump(mode="json"))
             summary["illustrativeRevenueUsd"] = scenario.illustrative_revenue_usd
             summary["revenueScenarioLabel"] = scenario.label
+        else:
+            # Always write the record so the Output tab link never points at a missing record.
+            await Actor.set_value(
+                "REVENUE_SCENARIO",
+                {
+                    "computed": False,
+                    "act_now_opportunities": pushed_hot,
+                    "monitor_opportunities": len(stage5.warm_signal_records),
+                    "message": (
+                        "No deal value was given, so no revenue scenario was calculated. Add dealValueUsd to the "
+                        "input, or enter your deal value in the calculator inside REPORT.html."
+                    ),
+                },
+            )
         await Actor.set_value("STATUS", summary)
         Actor.log.info("5-stage pipeline finished: %s", summary)
 

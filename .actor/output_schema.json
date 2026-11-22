@@ -9,6 +9,12 @@
       "description": "Act-now opportunities with drafts, Competitor Pain Radar and the revenue calculator.",
       "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/REPORT.html"
     },
+    "reportPdf": {
+      "type": "string",
+      "title": "Report (PDF download)",
+      "description": "The same report as a PDF, ready to share or download.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/REPORT.pdf"
+    },
     "opportunities": {
       "type": "string",
       "title": "Opportunities",

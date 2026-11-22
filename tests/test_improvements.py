@@ -710,3 +710,13 @@ def test_calculator_html_is_prefilled_labelled_and_safe():
     assert "__" not in html.replace("__REPORT_META__", "")  # every placeholder filled
     blank = _build_revenue_calculator_html(1, 0, ActorInput(productUrl="x.io"))
     assert 'value=""' in blank and "Enter a deal value" in blank
+
+
+def test_competitor_label_is_short_and_readable():
+    from src.report import _comp_label
+
+    assert _comp_label("Parallax; Hyper Solutions; Bright Data; Oxylabs") == "Parallax, Hyper Solutions +2"
+    assert _comp_label("SerpApi, Serper") == "SerpApi, Serper"
+    assert _comp_label("Bright Data") == "Bright Data"
+    assert _comp_label("Category-Level") == "Category-wide pain"
+    assert _comp_label("None") == "Category-wide pain"
