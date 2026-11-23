@@ -64,7 +64,7 @@ def _svg(body: str, extra: str = "") -> str:
     )
 
 
-ICON_BRIDGE = _svg('<path d="M2 18h20"/><path d="M4 18c0-6 3.6-10 8-10s8 4 8 10"/><path d="M8 18v-5M12 18V8M16 18v-5"/>')
+ICON_BRIDGE = _svg('<path d="M2 19h20"/><path d="M7 8v11M17 8v11"/><path d="M2 18 7 8Q12 15 17 8l5 10"/><path d="M9.5 10.6V19M12 11.5V19M14.5 10.6V19"/>')
 ICON_CHECK = _svg('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/>')
 ICON_ARROW = _svg('<path d="M5 12h14M13 6l6 6-6 6"/>')
 ICON_EXT = _svg('<path d="M7 17 17 7M9 7h8v8"/>')
